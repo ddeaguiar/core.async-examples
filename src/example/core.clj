@@ -55,50 +55,6 @@
     )
   )
 
-
-
-
-
-(comment
-  (let [c1 (chan)
-        c2 (chan)]
-    (go (while true
-          (let [[v ch]  (alts!! c1 c2)]
-            (println "Read" v "from" ch))))
-    (go (>! c1 "hi"))
-    (go (>! c2 "there"))))
-
-(comment
-  (defn worker [in out]
-    (go (loop [x (<! in)]
-          (if (nil? x)
-            (prn "Done")
-            (do  (>! out (* 2 x))
-                 (recur (<! in)))))))
-
-  (def in-c (chan))
-  (def out-c (chan))
-
-  (defn exec [c]
-    (go (loop [x (<! c)
-               acc []]
-          (println "Starting " x)
-          (if (nil? x)
-            (println acc)
-            (recur (<! c)
-                   (conj acc x)))))))
-
-(comment
-  (go (doseq [i (range 10)]
-        (>! in-c i)))
-
-  (go (doseq [_ (range 10)]
-        (println (<! in-c))))
-
-  (exec in-c)
-  )
-
-
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
