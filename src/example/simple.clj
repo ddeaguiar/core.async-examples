@@ -12,7 +12,7 @@
   {:x 1 :y 2 :z 2})
 
 (defn worker
-  "A worker go routine."
+  "A worker go block."
   [in out]
   (go (while true
         (let [w (<! in)
@@ -42,4 +42,4 @@
     (go (doseq [i r] (>! in
                          {:x i :y (+ i 1)})))
     ;; receive work done
-    (<!! (go (doseq [_ r] (prn (<! out)))))))
+    (doseq [_ r] (prn (<!! out)))))
