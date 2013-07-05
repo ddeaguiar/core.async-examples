@@ -1,6 +1,5 @@
 (ns example.core
-  (:require [clojure.core.async :as async :refer :all])
-  (:gen-class))
+  (:require [clojure.core.async :as async :refer :all]))
 
 (comment
   "Work is represented by a map:"
@@ -44,8 +43,3 @@
                          {:x i :y (+ i 1)})))
     ;; receive work done
     (<!! (go (doseq [_ r] (prn (<! out)))))))
-
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println "Hello, World!"))

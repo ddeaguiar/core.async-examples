@@ -1,35 +1,9 @@
 # example
 
-FIXME: description
-
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar example-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
+An exploration of Clojure's core.async library. For now my examples will be based on the Go examples from Rob Pike's recent talks.
 
 ## License
 
-Copyright © 2013 FIXME
+Copyright © 2013 Daniel De Aguiar
 
 Distributed under the Eclipse Public License, the same as Clojure.
