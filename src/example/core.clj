@@ -2,58 +2,55 @@
   (:require [clojure.core.async :as async :refer :all])
   (:gen-class))
 
+(defn requestor-fn [work-channel]
+  (go (let [c (chan)]
+        (while true
+          (do (Thread/sleep 500)
+              (>! work-channel {:fn + :c c})
+              (let [result (<! c)]
+                (prn "Obtained Result: " result)))))))
 
-(comment
+ (def request {:fn #(+ 1 1) :c (chan)})
 
-  (defn requestor-fn [work-channel]
-    (go (let [c (chan)]
-          (while true
-            (do (Thread/sleep 500)
-                (>! work-channel {:fn + :c c})
-                (let [result (<! c)]
-                  (prn "Obtained Result: " result)))))))
+(def worker {:requests (chan) :pending 0 :index 0})
 
-  (def request {:fn #(+ 1 1) :c (chan)})
+(defn work-fn [worker done-channel]
+  (go (while true
+        (let [req (<! (:requests worker))]
+          (>! (:c req) ((:fn req)))
+          (>! done-channel worker)))))
 
-  (def worker {:requests (chan) :pending 0 :index 0})
+(def balancer {:pool [] :done (chan)})
 
-  (defn work-fn [worker done-channel]
-    (go (while true
-          (let [req (<! (:requests worker))]
-            (>! (:c req) ((:fn req)))
-            (>! done-channel worker)))))
+(defn dispatch [balancer req]
+  (let [pool (:pool balancer)
+        worker (reduce (fn [w1 w2] (min (:pending w1)
+                                       (:pending w2)))
+                       pool)
+        requests (:requests worker)
+        pending (:pending worker)]
+    (<! requests req)
+    ;; broken because worker is not removed from pool.
+    ;; pool should probably be implemented as an atom.
+    (assoc worker :pending (inc pending))
+    (conj pool worker)))
 
-  (def balancer :pool [] :done (chan))
-
-  (defn balance-fn [balancer work-channel]
-    (go (while true
-          (let [balancer-channel (:done balancer)
-                [v c] (alts! [work-channel balancer-channel])]
-            (if (= c work-channel)
-              (dispatch v)
-              (completed v))))))
-
-  (defn dispatch [balancer req]
-    (let [pool (:pool balancer)
-          worker (reduce (fn [w1 w2] (min (:pending w1)
-                                         (:pending w2)))
-                         pool)
-          requests (:requests worker)
-          pending (:pending worker)]
-      (<! requests req)
-      ;; broken because worker is not removed from pool.
-      ;; pool should probably be implemented as an atom.
-      (assoc worker :pending (inc pending))
-      (conj pool worker)))
-
-  (defn completed [ balancer worker]
-    (let [pool (:pool balancer)
-          pending (:pending worker)]
-      ;; decrement worker pending counter
-      ;; remove worker from pool
-      ;; re-add worker to pool (based on new pending counter)
+(defn completed [ balancer worker]
+  (let [pool (:pool balancer)
+        pending (:pending worker)]
+    ;; decrement worker pending counter
+    ;; remove worker from pool
+    ;; re-add worker to pool (based on new pending counter)
     )
   )
+
+(defn balance-fn [balancer work-channel]
+  (go (while true
+        (let [balancer-channel (:done balancer)
+              [v c] (alts! [work-channel balancer-channel])]
+          (if (= c work-channel)
+            (dispatch v)
+            (completed v))))))
 
 (defn -main
   "I don't do a whole lot ... yet."
