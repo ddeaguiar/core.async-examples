@@ -12,7 +12,9 @@
   {:x 1 :y 2 :z 2}
   )
 
-(defn worker [in out]
+(defn worker
+  "A worker go routine."
+  [in out]
   (go (while true
         (let [w (<! in)
               x (:x w)
@@ -26,13 +28,16 @@
               (assoc w :z)
               (>! out))))))
 
-(defn runner []
+(defn runner
+  "Launcher which spawns n workers. Outputs the work as it is completed."
+  [n]
   ( let [in  (chan)
          out (chan)
-         r (range 1 100)]
+         r (range 1 100)
+         num-workers (range n)]
 
     ;; spawn workers
-    (doseq [_ r] (worker in out))
+    (doseq [_ num-workers] (worker in out))
 
     ;; send work in
     (go (doseq [i r] (>! in
