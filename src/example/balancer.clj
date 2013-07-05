@@ -51,7 +51,7 @@ work arriving in the 'work' channel and the 'balancer-algorithm' fn."
           (>! request-channel req)))))
 
 (defn runner [n]
-  (let [workers (atom (cycle (for [i (range n)]
+  (let [workers (atom (cycle (for [_ (range n)]
                                (create-worker))))
         work-channel (chan)]
     (balance work-channel workers round-robin)
