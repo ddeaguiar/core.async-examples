@@ -4,23 +4,34 @@
 
 (defn requestor-fn [work-channel]
   (go (let [c (chan)]
-        (while true
-          (do (Thread/sleep 500)
-              (>! work-channel {:fn + :c c})
-              (let [result (<! c)]
-                (prn "Obtained Result: " result)))))))
+        (do (Thread/sleep 500)
+            (>! work-channel {:fn + :c c})
+            (let [result (<! c)]
+              (prn "Obtained Result: " result))))))
 
- (def request {:fn #(+ 1 1) :c (chan)})
+(comment
+  "A sample request"
+  {:fn #(+ 1 1) :c (chan)}
 
-(def worker {:requests (chan) :pending 0 :index 0})
+  "A sample worker"
+  {:requests (chan) :pending 0 :index 0}
+
+  "A sample balancer"
+  "Perhaps pool should be externalized..."
+  {pool [] :done (chan)})
 
 (defn work-fn [worker done-channel]
   (go (while true
-        (let [req (<! (:requests worker))]
-          (>! (:c req) ((:fn req)))
-          (>! done-channel worker)))))
+        (let [requests (:requests worker)
+              req (<! requests)
+              result-channel (:c req)
+              req-fn (:fn req)]
 
-(def balancer {:pool [] :done (chan)})
+          ;; do the work
+          (>! result-channel (req-fn))
+
+          ;; state that your done
+          (>! done-channel worker)))))
 
 (defn dispatch [balancer req]
   (let [pool (:pool balancer)
@@ -29,18 +40,26 @@
                        pool)
         requests (:requests worker)
         pending (:pending worker)]
+
+    ;; queue the work
     (<! requests req)
-    ;; broken because worker is not removed from pool.
-    ;; pool should probably be implemented as an atom.
-    (assoc worker :pending (inc pending))
-    (conj pool worker)))
+
+    ;; TODO: Update worker's pending work count. Is this needed?
+    ;; Ideally could count number of pending requests
+
+    ;; TODO: Update worker's position in pool.
+    ;; Is this necessary?
+    ))
 
 (defn completed [ balancer worker]
   (let [pool (:pool balancer)
         pending (:pending worker)]
-    ;; decrement worker pending counter
-    ;; remove worker from pool
-    ;; re-add worker to pool (based on new pending counter)
+
+    ;; TODO: decrement worker pending counter. Is this needed?
+
+    ;; TODO: remove worker from pool. Is this needed?
+
+    ;; TODO: re-add worker to pool (based on new pending counter). Is this needed?
     )
   )
 
@@ -49,8 +68,12 @@
         (let [balancer-channel (:done balancer)
               [v c] (alts! [work-channel balancer-channel])]
           (if (= c work-channel)
+            ;; do work
             (dispatch v)
-            (completed v))))))
+
+            ;; worker is done
+            (completed v)
+            )))))
 
 (defn -main
   "I don't do a whole lot ... yet."
