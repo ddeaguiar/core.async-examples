@@ -46,3 +46,27 @@
     (doseq [i (range 10)]
       (prn (<!! c)))
     (prn "You're both boring; I'm leaving.")))
+
+;; http://talks.golang.org/2012/concurrency.slide#29
+(defrecord Message [str wait])
+
+;; http://talks.golang.org/2012/concurrency.slide#30
+(defn boring-3 [msg]
+  (let [c (chan)
+        wait (chan)]
+    (go (doseq [i (iterate inc 0)]
+          (>! c (->Message (str msg " " i) wait))
+          (Thread/sleep (rand 1000))
+          (<! wait)))
+    c))
+
+(defn runner-30 []
+  (let [c (fan-in (boring-3 "Joe")
+                  (boring-3 "Ann"))]
+    (dotimes [_ 5]
+      (let [msg1 (<!! c)
+            msg2 (<!! c)]
+        (prn (:str msg1))
+        (prn (:str msg2))
+        (>!! (:wait msg1) true)
+        (>!! (:wait msg2) true)))))
